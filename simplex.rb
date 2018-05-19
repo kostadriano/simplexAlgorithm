@@ -1,15 +1,11 @@
 require 'matrix'
 
-# m.element(1,1)
-#m = Matrix.rows(m.to_a << [1,0])
-#i =  Matrix.identity(2)
-
-#puts(m * Matrix[[2,2],[2,2]])
-# b = Matrix.column_vector(m);
+def simplexDirection(basicMatrix,k,a)
+  basicMatrix.inverse * a.column(k)
+end
 
 def variabelLeavesBase(costsHatNonBasic)
-  cnk = costsHatNonBasic.each_with_index.min
-  puts cnk.inspect
+  costsHatNonBasic.each_with_index.min
 end
 
 def relativeCosts(a, transposedLambda, nonBasicCosts, nonBasicVariabels)
@@ -28,8 +24,8 @@ def multiplicatorSimplexArray(c,basic)
   c.transpose*basic.inverse
 end   
 
-def basicSolition(basicVariabels, nonBasicVariabels, basic, nonBasic,b)
-  result = (basic.inverse * b.transpose)
+def basicSolition(basicVariabels, nonBasicVariabels, basicMatrix, nonBasic,b)
+  result = (basicMatrix.inverse * b.transpose)
 
   xB = []  
   for i in (0...result.row_count) do
@@ -114,7 +110,24 @@ puts costsHatNonBasic.inspect
 # (2.3) {determinação da variável a entrar na base}
 cnk, k = variabelLeavesBase(costsHatNonBasic)
 
+# Passo 3: {teste de otimalidade}
+if cnk>=0
+  puts "A solucao atual eh a otima"
+  print "X^ = #{xHat}"
 
+  solution = 0
+  for i in costs do
+    solution += costs.element(0,i) * xHat[i]
+  end
+
+  puts "Solution #{solution}"
+  exit
+end
+
+# Passo 4: {cálculo da direção simplex}
+y = simplexDirection(Matrix.columns(basicMatrix),k,a)
+
+# Passo 5: {determinação do passo e variável a sair da base}
 
 basicMatrix = Matrix.columns(basicMatrix)
 # basicMatrix = Matrix.build(basicVariabels.size){0}
