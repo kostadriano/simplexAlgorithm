@@ -1,18 +1,16 @@
 require 'matrix'
 
-class Matrix
-  def setElement(i, j, x)
-  @rows[i][j] = x
- end
-end
-
-
 # m.element(1,1)
 #m = Matrix.rows(m.to_a << [1,0])
 #i =  Matrix.identity(2)
 
 #puts(m * Matrix[[2,2],[2,2]])
 # b = Matrix.column_vector(m);
+
+def variabelLeavesBase(costsHatNonBasic)
+  cnk = costsHatNonBasic.each_with_index.min
+  puts cnk.inspect
+end
 
 def relativeCosts(a, transposedLambda, nonBasicCosts, nonBasicVariabels)
   relativeCostsNonBasic = []
@@ -102,6 +100,7 @@ end
 #Passo 1: {cálculo da solução básica}
 xHatBasics , xHatNonBasics, xHat = basicSolition(basicVariabels,nonBasicVariabels,Matrix.columns(basicMatrix),nonBasicMatrix,b) 
 
+
 #Passo 2: {cálculo dos custos relativos}
 
 #(2.1) {vetor multiplicador simplex}
@@ -113,6 +112,9 @@ costsHatNonBasic = relativeCosts(a, transposedLambda, Matrix.columns(nonBasicCos
 puts costsHatNonBasic.inspect
 
 # (2.3) {determinação da variável a entrar na base}
+cnk, k = variabelLeavesBase(costsHatNonBasic)
+
+
 
 basicMatrix = Matrix.columns(basicMatrix)
 # basicMatrix = Matrix.build(basicVariabels.size){0}
