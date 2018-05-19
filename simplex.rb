@@ -34,18 +34,22 @@ def basicSolition(basicVariabels, nonBasicVariabels, basic, nonBasic,b)
   result = (basic.inverse * b.transpose)
 
   xB = []  
-
   for i in (0...result.row_count) do
   xB << result.element(i,0).to_f
   end
 
   xN = Array.new(nonBasic.size,0)
 
-  xHat =[]
-  for i in (0..xB.size + xN.size) do
-    xHat[] = 
+  xHat = Array.new(xB.size + xN.size,0)
+  for i in (0...basicVariabels.size) do
+    xHat[basicVariabels[i]] = xB[i]  
   end
-  return xB, xN
+
+  for i in (0...nonBasicVariabels.size) do
+    xHat[nonBasicVariabels[i]] = xN[i]  
+  end
+
+  return xB, xN, xHat
 end
 
 numberOfVariables = 2
@@ -96,7 +100,7 @@ for i in (0...basicVariabels.size) do
 end
 
 #Passo 1: {cálculo da solução básica}
-xHatBasics , xHatNonBasics, xHat = basicSolition(Matrix.columns(basicMatrix),nonBasicMatrix,b) 
+xHatBasics , xHatNonBasics, xHat = basicSolition(basicVariabels,nonBasicVariabels,Matrix.columns(basicMatrix),nonBasicMatrix,b) 
 
 #Passo 2: {cálculo dos custos relativos}
 
