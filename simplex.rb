@@ -14,16 +14,23 @@ end
 #puts(m * Matrix[[2,2],[2,2]])
 # b = Matrix.column_vector(m);
 
-def basicSolition()
+def relativeCosts(a, transposedLambda, nonBasicCosts, nonBasicVariabels)
+  relativeCostsNonBasic = []
 
+  for i in (0...nonBasicCosts.column_count) do
+    relativeCostsNonBasic << (nonBasicCosts.column(i) - transposedLambda * a.column(nonBasicVariabels[i])).to_a
+    relativeCostsNonBasic[i] = relativeCostsNonBasic[i][0].to_f
+  end
+
+  relativeCostsNonBasic
 end
 
 def multiplicatorSimplexArray(c,basic)
-  puts basic.row_count,basic.column_count
-  puts c*basic.inverse
+  # puts basic.row_count,basic.column_count,c.row_count,c.column_count
+  c.transpose*basic.inverse
 end   
 
-def basicSolition(basic,nonBasic,b)
+def basicSolition(basicVariabels, nonBasicVariabels, basic, nonBasic,b)
   result = (basic.inverse * b.transpose)
 
   xB = []  
@@ -34,6 +41,10 @@ def basicSolition(basic,nonBasic,b)
 
   xN = Array.new(nonBasic.size,0)
 
+  xHat =[]
+  for i in (0..xB.size + xN.size) do
+    xHat[] = 
+  end
   return xB, xN
 end
 
@@ -69,24 +80,35 @@ nonBasicVariabels = (0...numberOfRestrictions).to_a
 basicVariabels = (numberOfRestrictions..a.column_count-1).to_a
 
 #Colocando as colunas das variaveis nao basicas na matrix variavel nao basica
-nonBasicMatrix, nonBasicCosts = []
+nonBasicMatrix = []
+nonBasicCosts = []
 for i in (0...nonBasicVariabels.size) do
   nonBasicMatrix << a.column(nonBasicVariabels[i]).to_a
-  nonBasicCosts << costs.element(0,nonBasicVariabels[i]).to_f
+  nonBasicCosts << costs.column(nonBasicVariabels[i]).to_a
 end
 
 #Colocando as colunas das variaveis basicas na matrix variavel basica
 basicMatrix = []
+basicCosts = []
 for i in (0...basicVariabels.size) do
   basicMatrix << a.column(basicVariabels[i]).to_a
+  basicCosts << costs.column(basicVariabels[i]).to_a
 end
 
 #Passo 1: {cálculo da solução básica}
-xHatBasics , xHatNonBasics = basicSolition(Matrix.columns(basicMatrix),nonBasicMatrix,b) 
+xHatBasics , xHatNonBasics, xHat = basicSolition(Matrix.columns(basicMatrix),nonBasicMatrix,b) 
 
-multiplicatorSimplexArray(costs,Matrix.columns(basicMatrix));
+#Passo 2: {cálculo dos custos relativos}
 
-# puts xHatBasics.inspect , xHatNonBasics.inspect 
+#(2.1) {vetor multiplicador simplex}
+transposedLambda = multiplicatorSimplexArray(Matrix.rows(basicCosts),Matrix.columns(basicMatrix));
+puts transposedLambda
+
+#(2.2) {custos relativos}
+costsHatNonBasic = relativeCosts(a, transposedLambda, Matrix.columns(nonBasicCosts), nonBasicVariabels)
+puts costsHatNonBasic.inspect
+
+# (2.3) {determinação da variável a entrar na base}
 
 basicMatrix = Matrix.columns(basicMatrix)
 # basicMatrix = Matrix.build(basicVariabels.size){0}
