@@ -1,5 +1,6 @@
 require 'matrix'
 require 'pp'
+require 'bigdecimal'
 
 def updateMatrix(basicMatrix,nonBasicMatrix,k,l)
   temp = basicMatrix[l]
@@ -27,7 +28,7 @@ def updateCosts(basicVariabels, nonBasicVariabels,k,l,basicCosts,nonBasicCosts,c
 end
 
 def variabelLeavesBase(y, xB)
-  if(y.to_a.min <= 0)
+  if(y.to_a.max <= 0)
     abort("problema não tem solução ótima finita f (x) → −∞ ")
   end
 
@@ -35,7 +36,11 @@ def variabelLeavesBase(y, xB)
 
   temp = []
   for i in (0...xB.size) do
-    temp << xB[i]/y[i].to_f
+    if(y[i].to_f > 0)
+      temp << xB[i]/y[i].to_f
+    else
+      temp << BigDecimal('Infinity')
+    end
   end
 
   temp.each_with_index.min
@@ -52,8 +57,14 @@ end
 def relativeCosts(a, transposedLambda, nonBasicCosts, nonBasicVariabels)
   relativeCostsNonBasic = []
 
+  puts "-----------------------------"
+  puts nonBasicCosts.inspect,transposedLambda.inspect
+  puts "-----------------------------"
+
+
   for i in (0...nonBasicCosts.column_count) do
-    relativeCostsNonBasic << (nonBasicCosts.column(i) - transposedLambda * a.column(nonBasicVariabels[i])).to_a
+    # nonBasicCosts.column(i) - (transposedLambda * a.column(nonBasicVariabels[i])
+    relativeCostsNonBasic << (nonBasicCosts.column(i) - (transposedLambda * a.column(nonBasicVariabels[i]))).to_a
     relativeCostsNonBasic[i] = relativeCostsNonBasic[i][0].to_f
   end
 
@@ -87,33 +98,42 @@ def basicSolition(basicVariabels, nonBasicVariabels, basicMatrix, nonBasic,b)
   return xB, xN, xHat
 end
 
-numberOfVariables = 2
-numberOfRestrictions = 2
+puts("Problema: ")
+problem = gets.chomp.split(" ")
+puts costs = problem[(1...problem.size)].map(&:to_f)
 
-# m = Matrix.build(numberOfVariables,numberOfRestrictions){|x| 
-#   x = gets.chomp.to_f
-#   x = numberOfRestrictions
-# }
+isMax = problem[0] == "max" ? true : false;
 
-#Use Exemplo 
-#Min -x1 -x2
-#sa:
-#2x1+1<=8
-#x1+2x2<=3
+puts("Numero de restricoes: ")
+numberOfRestrictions = gets.to_i
 
-a = Matrix[[2,1],[1,2]]
-b = Matrix[[8,3]]
-costs = Matrix[[-1,-1]]
+numberOfVariables = problem.size-1
+
+a = []
+b = []
+puts ("Restricoes: ")
+for i in (0...numberOfRestrictions) do
+  restrictions = gets.chomp.split(" ")
+
+  a << restrictions[(0...numberOfVariables)].map(&:to_f)
+
+  b << restrictions[-1].to_f  
+end
+
+a = Matrix.rows(a)
+b = Matrix.rows([b])
+costs = Matrix.rows([costs])
 
 #Aumentando matriz A
 a = Matrix.hstack(a,Matrix.identity(numberOfRestrictions));
 #Aumentando a matriz dos custos
 costs = Matrix.hstack(costs,Matrix.build(1,numberOfRestrictions){0})
 
+puts a.inspect
 #Colocando nas variaveis nao basicas as variaveis da matriz a
-nonBasicVariabels = (0...numberOfRestrictions).to_a
+nonBasicVariabels = (0...numberOfVariables).to_a
 #Colocando na base as variaveis que formam a identidade
-basicVariabels = (numberOfRestrictions..a.column_count-1).to_a
+basicVariabels = (numberOfVariables...a.column_count).to_a
 
 #Colocando as colunas das variaveis nao basicas na matrix variavel nao basica
 nonBasicMatrix = []
@@ -123,6 +143,7 @@ for i in (0...nonBasicVariabels.size) do
   nonBasicCosts << costs.column(nonBasicVariabels[i]).to_a
 end
 
+
 #Colocando as colunas das variaveis basicas na matrix variavel basica
 basicMatrix = []
 basicCosts = []
@@ -130,7 +151,8 @@ for i in (0...basicVariabels.size) do
   basicMatrix << a.column(basicVariabels[i]).to_a
   basicCosts << costs.column(basicVariabels[i]).to_a
 end
-
+puts nonBasicCosts.inspect
+puts basicCosts.inspect
 it = 1
 loop do
   puts "\nIteracao #{it}"
@@ -139,7 +161,7 @@ loop do
   
 
   print "Base = "
-  puts basicMatrix.transpose.inspect  
+  puts basicMatrix.inspect  
   
   #Passo 1: {cálculo da solução básica}
   xHatBasics , xHatNonBasics, xHat = basicSolition(basicVariabels,nonBasicVariabels,Matrix.columns(basicMatrix),nonBasicMatrix,b) 
@@ -175,7 +197,7 @@ loop do
 
   # Passo 4: {cálculo da direção simplex}
   y = simplexDirection(Matrix.columns(basicMatrix),k,a)
-  puts "Direcao Simplex y = #{costsHatNonBasic.inspect}"
+  puts "Direcao Simplex y = #{y.inspect}"
 
   # Passo 5: {determinação do passo e variável a sair da base}
   episolom, l = variabelLeavesBase(y,xHatBasics)
@@ -187,4 +209,7 @@ loop do
   basicVariabels, nonBasicVariabels, basicCosts, nonBasicCosts = updateCosts(basicVariabels, nonBasicVariabels,k,l, basicCosts, nonBasicCosts,costs)
   
   it = it+1
+  if it == 5
+    exit
+  end
 end
