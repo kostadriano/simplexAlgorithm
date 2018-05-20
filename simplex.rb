@@ -1,4 +1,31 @@
 require 'matrix'
+require 'pp'
+
+def updateMatrix(basicMatrix,nonBasicMatrix,k,l)
+  temp = basicMatrix[l]
+  basicMatrix[l] = nonBasicMatrix[k] 
+  nonBasicMatrix[k] = temp
+  
+  return basicMatrix, nonBasicMatrix
+end
+
+def updateCosts(basicVariabels, nonBasicVariabels,k,l,basicCosts,nonBasicCosts,costs)
+
+  temp = basicVariabels[l]
+  basicVariabels[l] = nonBasicVariabels[k]
+  nonBasicVariabels[k] = temp
+
+  for i in (0...nonBasicVariabels.size) do
+    nonBasicCosts[i] = costs.column(nonBasicVariabels[i]).to_a
+  end
+  
+  for i in (0...basicVariabels.size) do
+    basicCosts[i] = costs.column(basicVariabels[i]).to_a
+  end
+
+  return basicVariabels, nonBasicVariabels, basicCosts, nonBasicCosts
+end
+
 def variabelLeavesBase(y, xB)
   if(y.to_a.min <= 0)
     abort("problema não tem solução ótima finita f (x) → −∞ ")
@@ -63,9 +90,6 @@ end
 numberOfVariables = 2
 numberOfRestrictions = 2
 
-_colums = 2
-_rows = 2
-
 # m = Matrix.build(numberOfVariables,numberOfRestrictions){|x| 
 #   x = gets.chomp.to_f
 #   x = numberOfRestrictions
@@ -107,71 +131,60 @@ for i in (0...basicVariabels.size) do
   basicCosts << costs.column(basicVariabels[i]).to_a
 end
 
-#Passo 1: {cálculo da solução básica}
-xHatBasics , xHatNonBasics, xHat = basicSolition(basicVariabels,nonBasicVariabels,Matrix.columns(basicMatrix),nonBasicMatrix,b) 
+it = 1
+loop do
+  puts "\nIteracao #{it}"
+  puts "Variaveis da Base = #{basicVariabels.inspect}"
+  puts "Variaveis nao Basicas = #{nonBasicVariabels.inspect}"
+  
 
+  print "Base = "
+  puts basicMatrix.transpose.inspect  
+  
+  #Passo 1: {cálculo da solução básica}
+  xHatBasics , xHatNonBasics, xHat = basicSolition(basicVariabels,nonBasicVariabels,Matrix.columns(basicMatrix),nonBasicMatrix,b) 
+  puts "X^ = #{xHat}"
 
-#Passo 2: {cálculo dos custos relativos}
+  #Passo 2: {cálculo dos custos relativos}
 
-#(2.1) {vetor multiplicador simplex}
-transposedLambda = multiplicatorSimplexArray(Matrix.rows(basicCosts),Matrix.columns(basicMatrix));
-puts transposedLambda
+  #(2.1) {vetor multiplicador simplex}
+  transposedLambda = multiplicatorSimplexArray(Matrix.rows(basicCosts),Matrix.columns(basicMatrix));
+  puts "Lambda Transposto = #{transposedLambda.map(&:to_f).to_a}"
 
-#(2.2) {custos relativos}
-costsHatNonBasic = relativeCosts(a, transposedLambda, Matrix.columns(nonBasicCosts), nonBasicVariabels)
-puts costsHatNonBasic.inspect
+  #(2.2) {custos relativos}
+  costsHatNonBasic = relativeCosts(a, transposedLambda, Matrix.columns(nonBasicCosts), nonBasicVariabels)
+  puts "Custo relativo das nao basicas = #{costsHatNonBasic.inspect}"
 
-# (2.3) {determinação da variável a entrar na base}
-cnk, k = variabelEntryBase(costsHatNonBasic)
+  # (2.3) {determinação da variável a entrar na base}
+  cnk, k = variabelEntryBase(costsHatNonBasic)
+  puts "Ĉnk = #{cnk}; k = #{k}"
 
-# Passo 3: {teste de otimalidade}
-if cnk>=0
-  puts "A solucao atual eh a otima"
-  print "X^ = #{xHat}"
+  # Passo 3: {teste de otimalidade}
+  if cnk>=0
+    puts "\nA solucao atual eh a otima"
+    puts "X^ = #{xHat}"
 
-  solution = 0
-  for i in costs do
-    solution += costs.element(0,i) * xHat[i]
+    solution = 0
+    for i in (0...xHat.size) do
+      solution += costs.element(0,i) * xHat[i]
+    end
+
+    puts "Solution #{solution}"
+    exit
   end
 
-  puts "Solution #{solution}"
-  exit
+  # Passo 4: {cálculo da direção simplex}
+  y = simplexDirection(Matrix.columns(basicMatrix),k,a)
+  puts "Direcao Simplex y = #{costsHatNonBasic.inspect}"
+
+  # Passo 5: {determinação do passo e variável a sair da base}
+  episolom, l = variabelLeavesBase(y,xHatBasics)
+  puts "ε = #{episolom}, l = #{l}"
+
+  # Passo 6: {atualização: nova partição básica, troque a l-ésima coluna de B pela k-ésima
+  #   coluna de N}
+  basicMatrix, nonBasicMatrix = updateMatrix(basicMatrix,nonBasicMatrix,k,l)
+  basicVariabels, nonBasicVariabels, basicCosts, nonBasicCosts = updateCosts(basicVariabels, nonBasicVariabels,k,l, basicCosts, nonBasicCosts,costs)
+  
+  it = it+1
 end
-
-# Passo 4: {cálculo da direção simplex}
-y = simplexDirection(Matrix.columns(basicMatrix),k,a)
-
-# Passo 5: {determinação do passo e variável a sair da base}
-episolom, bl = variabelLeavesBase(y,xHatBasics)
-
-
-basicMatrix = Matrix.columns(basicMatrix)
-# basicMatrix = Matrix.build(basicVariabels.size){0}
-# for i in (0..basicVariabels.size) do
-#   basicMatrix = a.column(basicVariabels[i])
-# end
-
-
-# a = Matrix.hstack(m,Matrix.identity(numberOfRestrictions))
-# b = Matrix[a.column(basicVariabels[0]).to_a,a.column(basicVariabels[1]).to_a]
-
-
-# for i in (0...numberOfRestrictions) do
-#   m << a.row(i).to_a
-# end
-
-# puts m.class
-
-# t = Matrix.rows([m])
-
-# puts t
-#  for i in (0..numberOfRestrictions) do
-#    t.setElement(i,0,99) 
-#  end
-
-
-#a.map{ puts a}
-
-#a.each do |column|
-#  puts column[0]
-#end
