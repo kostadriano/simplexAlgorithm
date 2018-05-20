@@ -1,10 +1,24 @@
 require 'matrix'
+def variabelLeavesBase(y, xB)
+  if(y.to_a.min <= 0)
+    abort("problema não tem solução ótima finita f (x) → −∞ ")
+  end
+
+  y = y.to_a
+
+  temp = []
+  for i in (0...xB.size) do
+    temp << xB[i]/y[i].to_f
+  end
+
+  temp.each_with_index.min
+end
 
 def simplexDirection(basicMatrix,k,a)
   basicMatrix.inverse * a.column(k)
 end
 
-def variabelLeavesBase(costsHatNonBasic)
+def variabelEntryBase(costsHatNonBasic)
   costsHatNonBasic.each_with_index.min
 end
 
@@ -108,7 +122,7 @@ costsHatNonBasic = relativeCosts(a, transposedLambda, Matrix.columns(nonBasicCos
 puts costsHatNonBasic.inspect
 
 # (2.3) {determinação da variável a entrar na base}
-cnk, k = variabelLeavesBase(costsHatNonBasic)
+cnk, k = variabelEntryBase(costsHatNonBasic)
 
 # Passo 3: {teste de otimalidade}
 if cnk>=0
@@ -128,6 +142,8 @@ end
 y = simplexDirection(Matrix.columns(basicMatrix),k,a)
 
 # Passo 5: {determinação do passo e variável a sair da base}
+episolom, bl = variabelLeavesBase(y,xHatBasics)
+
 
 basicMatrix = Matrix.columns(basicMatrix)
 # basicMatrix = Matrix.build(basicVariabels.size){0}
