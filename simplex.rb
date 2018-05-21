@@ -2,13 +2,15 @@ require 'matrix'
 require 'pp'
 require 'bigdecimal'
 class Simplex
-  def initialize(numberOfVariables, numberOfRestrictions, a, b, isMax, costs)
+  def initialize(numberOfVariables, numberOfRestrictions, a, b, isMax, costs, basicVariabels, nonBasicVariabels)
     @a = a
     @numberOfVariables = numberOfVariables
     @numberOfRestrictions = numberOfRestrictions
     @b = b
     @isMax = isMax
     @costs = costs
+    @nonBasicVariabels = nonBasicVariabels
+    @basicVariabels = basicVariabels
   end
 
   def updateMatrix(basicMatrix,nonBasicMatrix,k,l)
@@ -118,9 +120,9 @@ class Simplex
     
     puts "\nA: #{a.inspect}"
     #Colocando nas variaveis nao basicas as variaveis da matriz a
-    nonBasicVariabels = (0...numberOfVariables).to_a
+    nonBasicVariabels = @nonBasicVariabels
     #Colocando na base as variaveis que formam a identidade
-    basicVariabels = (numberOfVariables...a.column_count).to_a
+    basicVariabels = @basicVariabels
     
     #Colocando as colunas das variaveis nao basicas na matrix variavel nao basica
     nonBasicMatrix = []
@@ -176,6 +178,8 @@ class Simplex
         for i in (0...xHat.size) do
           solution += costs.element(0,i) * xHat[i]
         end
+
+        solution = @isMax ? -solution : solution
     
         puts "Solution #{solution}"
         exit
@@ -225,6 +229,10 @@ for i in (0...numberOfRestrictions) do
   b << restrictions[-1].to_f  
 end
 
+#Colocando nas variaveis nao basicas as variaveis da matriz a
+nonBasicVariabels = (0...numberOfVariables).to_a
+#Colocando na base as variaveis que formam a identidade
+basicVariabels = (numberOfVariables...numberOfVariables+numberOfRestrictions).to_a
 
-simplex = Simplex.new(numberOfVariables, numberOfRestrictions, a, b, isMax, costs)
+simplex = Simplex.new(numberOfVariables, numberOfRestrictions, a, b, isMax, costs, basicVariabels, nonBasicVariabels)
 simplex.calculate
