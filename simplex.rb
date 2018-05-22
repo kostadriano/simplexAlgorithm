@@ -244,18 +244,18 @@ class Simplex
     a = []
     arrayOfRestrictions = []
     b = []
-    # puts ("Restricoes: ")
-    # for i in (0...numberOfRestrictions) do
-    #   restrictions = gets.chomp.split(" ")
+    puts ("Restricoes: ")
+    for i in (0...numberOfRestrictions) do
+      restrictions = gets.chomp.split(" ")
 
-    #   a << restrictions[(0...numberOfVariables)].map(&:to_f)
-    #   arrayOfRestrictions << restrictions[-2]
-    #   b << restrictions[-1].to_f  
-    # end
+      a << restrictions[(0...numberOfVariables)].map(&:to_f)
+      arrayOfRestrictions << restrictions[-2]
+      b << restrictions[-1].to_f  
+    end
 
-    a = [[-1,1],[1,1],[2,-1]]
-    b = [3,27,-3]
-    arrayOfRestrictions = [">=","<=","<="]
+    # a = [[-1,1],[1,1],[2,-1]]
+    # b = [3,27,-3]
+    # arrayOfRestrictions = [">=","<=","<="]
 
     b = bIsNegative(b,arrayOfRestrictions,a)
 
