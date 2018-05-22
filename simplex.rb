@@ -2,7 +2,7 @@ require 'matrix'
 require 'pp'
 require 'bigdecimal'
 class Simplex
-  def initialize(numberOfVariables, numberOfRestrictions, a, b, isMax, costs, basicVariabels, nonBasicVariabels)
+  def initialize(numberOfVariables, numberOfRestrictions, a, b, isMax, costs, basicVariabels, nonBasicVariabels, isArtificialProblem, artificialVariables,flag)
     @a = a
     @numberOfVariables = numberOfVariables
     @numberOfRestrictions = numberOfRestrictions
@@ -11,6 +11,9 @@ class Simplex
     @costs = costs
     @nonBasicVariabels = nonBasicVariabels
     @basicVariabels = basicVariabels
+    @isArtificialProblem = isArtificialProblem
+    @artificialVariables = artificialVariables
+    @flag = flag
   end
 
   def updateMatrix(basicMatrix,nonBasicMatrix,k,l)
@@ -105,7 +108,6 @@ class Simplex
   end
 
   def calculate
-
     a = Matrix.rows(@a)
     b = Matrix.rows([@b])
     costs = Matrix.rows([@costs])
@@ -113,11 +115,13 @@ class Simplex
     numberOfRestrictions = @numberOfRestrictions
     numberOfVariables = @numberOfVariables
 
-    #Aumentando matriz A
-    a = Matrix.hstack(a,Matrix.identity(numberOfRestrictions));
+    if(@flag)
+      #Aumentando matriz A
+      a = Matrix.hstack(a,Matrix.identity(numberOfRestrictions));
+    end
+
     #Aumentando a matriz dos custos
-    costs = Matrix.hstack(costs,Matrix.build(1,numberOfRestrictions){0})
-    
+    # costs = Matrix.hstack(costs,Matrix.build(1,numberOfRestrictions){0})
     puts "\nA: #{a.inspect}"
     #Colocando nas variaveis nao basicas as variaveis da matriz a
     nonBasicVariabels = @nonBasicVariabels
@@ -132,7 +136,6 @@ class Simplex
       nonBasicCosts << costs.column(nonBasicVariabels[i]).to_a
     end
     
-    
     #Colocando as colunas das variaveis basicas na matrix variavel basica
     basicMatrix = []
     basicCosts = []
@@ -146,7 +149,6 @@ class Simplex
       puts "\nIteracao #{it}"
       puts "Variaveis da Base = #{basicVariabels.inspect}"
       puts "Variaveis nao Basicas = #{nonBasicVariabels.inspect}"
-      
     
       print "Base = "
       puts basicMatrix.inspect  
@@ -171,6 +173,21 @@ class Simplex
     
       # Passo 3: {teste de otimalidade}
       if cnk>=0
+        if(@isArtificialProblem)
+          basicVariabels.each do |x| 
+            if !(@artificialVariables.include? x)
+              _nonBasicVariabels = []
+              for i in 0...nonBasicVariabels.size do
+                if !(@artificialVariables.include? (nonBasicVariabels[i]))
+                  _nonBasicVariabels << nonBasicVariabels[i]
+                end
+              end
+              return basicVariabels, _nonBasicVariabels
+            end
+          end
+          abort("problema não tem solução ótima finita f (x) → −∞ ")
+        end
+
         puts "\nA solucao atual eh a otima"
         puts "X^ = #{xHat}"
     
@@ -204,35 +221,95 @@ class Simplex
       end
     end  
   end  
+  def self.main
+    puts("Problema: ")
+    problem = gets.chomp.split(" ")
+    originalCosts = problem[(1...problem.size)].map(&:to_f)
+
+    isMax = problem[0] == "max" ? true : false;
+
+    puts("Numero de restricoes: ")
+    numberOfRestrictions = gets.to_i
+
+    numberOfVariables = problem.size-1
+
+    a = []
+    arrayOfRestrictions = []
+    b = []
+    puts ("Restricoes: ")
+    for i in (0...numberOfRestrictions) do
+      restrictions = gets.chomp.split(" ")
+
+      a << restrictions[(0...numberOfVariables)].map(&:to_f)
+      arrayOfRestrictions << restrictions[-2]
+      b << restrictions[-1].to_f  
+    end
+
+    # a = [[2,1],[1,3],[1,0]]
+    # b = [30,8,4]
+    # arrayOfRestrictions = [">=","<=",">="]
+
+    if(isMax)
+      for i in 0...originalCosts.size do
+        originalCosts[i] = originalCosts[i]*-1
+      end
+    end
+
+    isArtificialProblem = false;
+
+    if((arrayOfRestrictions.include? ('>=')) || (arrayOfRestrictions.include? ('='))) 
+      isArtificialProblem = true;
+    end
+
+    if(isArtificialProblem)
+      for i in 0...a.size do
+        if(arrayOfRestrictions[i] != '=')
+          for j in 0...numberOfRestrictions do
+            a[i] << 0
+          end
+        end
+        if(arrayOfRestrictions[i] == '>=')
+          a[i][numberOfVariables+i] = -1
+        end
+        if(arrayOfRestrictions[i] == '<=')
+          a[i][numberOfVariables+i] = 1
+        end
+      end
+    end
+
+    for i in 0...numberOfRestrictions do
+      originalCosts << 0
+    end
+
+    if(!isArtificialProblem)
+      #Colocando nas variaveis nao basicas as variaveis da matriz a
+      nonBasicVariabels = (0...numberOfVariables).to_a
+      #Colocando na base as variaveis que formam a identidade
+      basicVariabels = (numberOfVariables...numberOfVariables+numberOfRestrictions).to_a
+    else
+      nonBasicVariabels = (0...numberOfVariables+numberOfRestrictions).to_a
+      basicVariabels = (nonBasicVariabels.size...nonBasicVariabels.size+numberOfRestrictions).to_a
+      artificialVariables = (nonBasicVariabels.size...nonBasicVariabels.size+numberOfRestrictions).to_a
+
+      costs = originalCosts.collect{|x| x*0} 
+      for i in 0...numberOfRestrictions do
+        costs << 1
+      end
+    end
+
+    flag = true
+
+    if(isArtificialProblem)
+      puts "FASE I"
+      simplex = Simplex.new(numberOfVariables, numberOfRestrictions, a, b, isMax, costs, basicVariabels, nonBasicVariabels, true, artificialVariables,true)
+      basicVariabels, nonBasicVariabels = simplex.calculate
+      flag = false
+    end
+
+    puts "\nFASE II"
+    simplex = Simplex.new(numberOfVariables, numberOfRestrictions, a, b, isMax, originalCosts, basicVariabels, nonBasicVariabels, false, artificialVariables,flag)
+    simplex.calculate
+  end
 end
 
-
-puts("Problema: ")
-problem = gets.chomp.split(" ")
-costs = problem[(1...problem.size)].map(&:to_f)
-
-isMax = problem[0] == "max" ? true : false;
-
-puts("Numero de restricoes: ")
-numberOfRestrictions = gets.to_i
-
-numberOfVariables = problem.size-1
-
-a = []
-b = []
-puts ("Restricoes: ")
-for i in (0...numberOfRestrictions) do
-  restrictions = gets.chomp.split(" ")
-
-  a << restrictions[(0...numberOfVariables)].map(&:to_f)
-
-  b << restrictions[-1].to_f  
-end
-
-#Colocando nas variaveis nao basicas as variaveis da matriz a
-nonBasicVariabels = (0...numberOfVariables).to_a
-#Colocando na base as variaveis que formam a identidade
-basicVariabels = (numberOfVariables...numberOfVariables+numberOfRestrictions).to_a
-
-simplex = Simplex.new(numberOfVariables, numberOfRestrictions, a, b, isMax, costs, basicVariabels, nonBasicVariabels)
-simplex.calculate
+Simplex.main
