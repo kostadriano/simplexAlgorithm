@@ -221,6 +221,7 @@ class Simplex
       end
     end  
   end  
+
   def self.main
     puts("Problema: ")
     problem = gets.chomp.split(" ")
@@ -245,9 +246,19 @@ class Simplex
       b << restrictions[-1].to_f  
     end
 
-    # a = [[2,1],[1,3],[1,0]]
-    # b = [30,8,4]
-    # arrayOfRestrictions = [">=","<=",">="]
+    # a = [[2,1],[1,1]]
+    # b = [-1,1]
+    # arrayOfRestrictions = [">=","<="]
+
+    b.map!.with_index{|x,i| 
+      if x<0
+        a[i].map!{|n| n*-1}
+        arrayOfRestrictions[i] = arrayOfRestrictions[i] == ">=" ? "<=" : ">="
+        -1*x
+      else
+        1*x 
+      end
+    }
 
     if(isMax)
       for i in 0...originalCosts.size do
