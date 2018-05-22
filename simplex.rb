@@ -17,9 +17,7 @@ class Simplex
   end
 
   def updateMatrix(basicMatrix,nonBasicMatrix,k,l)
-    temp = basicMatrix[l]
-    basicMatrix[l] = nonBasicMatrix[k] 
-    nonBasicMatrix[k] = temp
+    basicMatrix[l],nonBasicMatrix[k] = nonBasicMatrix[k],basicMatrix[l] 
     
     return basicMatrix, nonBasicMatrix
   end
@@ -81,7 +79,6 @@ class Simplex
   end
   
   def multiplicatorSimplexArray(c,basic)
-    # puts basic.row_count,basic.column_count,c.row_count,c.column_count
     c.transpose*basic.inverse
   end   
   
@@ -122,7 +119,9 @@ class Simplex
 
     #Aumentando a matriz dos custos
     # costs = Matrix.hstack(costs,Matrix.build(1,numberOfRestrictions){0})
-    puts "\nA: #{a.inspect}"
+    puts "\nA:"
+    puts a.to_a.map(&:inspect)
+      
     #Colocando nas variaveis nao basicas as variaveis da matriz a
     nonBasicVariabels = @nonBasicVariabels
     #Colocando na base as variaveis que formam a identidade
@@ -150,8 +149,8 @@ class Simplex
       puts "Variaveis da Base = #{basicVariabels.inspect}"
       puts "Variaveis nao Basicas = #{nonBasicVariabels.inspect}"
     
-      print "Base = "
-      puts basicMatrix.inspect  
+      puts "Base = "
+      puts basicMatrix.to_a.map(&:inspect)
       
       #Passo 1: {cálculo da solução básica}
       xHatBasics , xHatNonBasics, xHat = basicSolition(basicVariabels,nonBasicVariabels,Matrix.columns(basicMatrix),nonBasicMatrix,b) 
@@ -216,12 +215,20 @@ class Simplex
       basicVariabels, nonBasicVariabels, basicCosts, nonBasicCosts = updateCosts(basicVariabels, nonBasicVariabels,k,l, basicCosts, nonBasicCosts,costs)
       
       it = it+1
-      if it == 5
-        exit
-      end
     end  
   end  
 
+  def self.bIsNegative(b,arrayOfRestrictions,a)
+    b.map!.with_index{|x,i| 
+      if x<0
+        a[i].map!{|n| n*-1}
+        arrayOfRestrictions[i] = arrayOfRestrictions[i] == ">=" ? "<=" : ">="
+        -1*x
+      else
+        1*x 
+      end
+    }
+  end
   def self.main
     puts("Problema: ")
     problem = gets.chomp.split(" ")
@@ -237,28 +244,20 @@ class Simplex
     a = []
     arrayOfRestrictions = []
     b = []
-    puts ("Restricoes: ")
-    for i in (0...numberOfRestrictions) do
-      restrictions = gets.chomp.split(" ")
+    # puts ("Restricoes: ")
+    # for i in (0...numberOfRestrictions) do
+    #   restrictions = gets.chomp.split(" ")
 
-      a << restrictions[(0...numberOfVariables)].map(&:to_f)
-      arrayOfRestrictions << restrictions[-2]
-      b << restrictions[-1].to_f  
-    end
+    #   a << restrictions[(0...numberOfVariables)].map(&:to_f)
+    #   arrayOfRestrictions << restrictions[-2]
+    #   b << restrictions[-1].to_f  
+    # end
 
-    # a = [[2,1],[1,1]]
-    # b = [-1,1]
-    # arrayOfRestrictions = [">=","<="]
+    a = [[-1,1],[1,1],[2,-1]]
+    b = [3,27,-3]
+    arrayOfRestrictions = [">=","<=","<="]
 
-    b.map!.with_index{|x,i| 
-      if x<0
-        a[i].map!{|n| n*-1}
-        arrayOfRestrictions[i] = arrayOfRestrictions[i] == ">=" ? "<=" : ">="
-        -1*x
-      else
-        1*x 
-      end
-    }
+    b = bIsNegative(b,arrayOfRestrictions,a)
 
     if(isMax)
       for i in 0...originalCosts.size do
@@ -288,7 +287,7 @@ class Simplex
       end
     end
 
-    for i in 0...numberOfRestrictions do
+    for i in 0...a[0].size-numberOfVariables do
       originalCosts << 0
     end
 
@@ -296,9 +295,9 @@ class Simplex
       #Colocando nas variaveis nao basicas as variaveis da matriz a
       nonBasicVariabels = (0...numberOfVariables).to_a
       #Colocando na base as variaveis que formam a identidade
-      basicVariabels = (numberOfVariables...numberOfVariables+numberOfRestrictions).to_a
+      basicVariabels = (numberOfVariables...a[0].size-numberOfVariables).to_a
     else
-      nonBasicVariabels = (0...numberOfVariables+numberOfRestrictions).to_a
+      nonBasicVariabels = (0...a[0].size).to_a
       basicVariabels = (nonBasicVariabels.size...nonBasicVariabels.size+numberOfRestrictions).to_a
       artificialVariables = (nonBasicVariabels.size...nonBasicVariabels.size+numberOfRestrictions).to_a
 
