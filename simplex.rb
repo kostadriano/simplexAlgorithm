@@ -115,6 +115,8 @@ class Simplex
     numberOfRestrictions = @numberOfRestrictions
     numberOfVariables = @numberOfVariables
 
+    puts a.inspect,numberOfRestrictions.inspect
+
     if(@flag)
       #Aumentando matriz A
       a = Matrix.hstack(a,Matrix.identity(numberOfRestrictions));
@@ -224,36 +226,57 @@ class Simplex
 
   def self.main
     puts("Problema: ")
-    problem = gets.chomp.split(" ")
+    # problem = ("max 1 1").split(" ")    
+    problem = ("min 1 -1 2").split(" ")
+    
+    # problem = gets.chomp.split(" ")
     originalCosts = problem[(1...problem.size)].map(&:to_f)
 
     isMax = problem[0] == "max" ? true : false;
 
     puts("Numero de restricoes: ")
-    numberOfRestrictions = gets.to_i
+    # numberOfRestrictions = gets.to_i
 
+    numberOfRestrictions = 2
     numberOfVariables = problem.size-1
 
     a = []
     arrayOfRestrictions = []
     b = []
     puts ("Restricoes: ")
-    for i in (0...numberOfRestrictions) do
-      restrictions = gets.chomp.split(" ")
+    # for i in (0...numberOfRestrictions) do
+    #   restrictions = gets.chomp.split(" ")
 
-      a << restrictions[(0...numberOfVariables)].map(&:to_f)
-      arrayOfRestrictions << restrictions[-2]
-      b << restrictions[-1].to_f  
-    end
+    #   a << restrictions[(0...numberOfVariables)].map(&:to_f)
+    #   arrayOfRestrictions << restrictions[-2]
+    #   b << restrictions[-1].to_f  
+    # end
 
-    # a = [[2,1],[1,1]]
-    # b = [-1,1]
-    # arrayOfRestrictions = [">=","<="]
+    # a = [[-1,1],[1,1],[2,-1]]
+    # arrayOfRestrictions = [">=","<=","<="]
+    # b = [3,27,-3]
+
+    a = [[1,1,1],[2,-1,3]]
+    arrayOfRestrictions = ["=","<="]
+    b = [3,4]
+
+
+    _numberOfRestrictions = numberOfRestrictions
+    arrayOfRestrictions.map{|x|
+      if(x == "=")
+        _numberOfRestrictions = _numberOfRestrictions -1  
+      end
+      x
+    }
 
     b.map!.with_index{|x,i| 
       if x<0
         a[i].map!{|n| n*-1}
-        arrayOfRestrictions[i] = arrayOfRestrictions[i] == ">=" ? "<=" : ">="
+        if(arrayOfRestrictions[i] == ">=")
+          arrayOfRestrictions[i] =  "<=" 
+        elsif(arrayOfRestrictions[i] == "<=")
+          arrayOfRestrictions[i] =  ">=" 
+        end
         -1*x
       else
         1*x 
@@ -268,27 +291,33 @@ class Simplex
 
     isArtificialProblem = false;
 
+
     if((arrayOfRestrictions.include? ('>=')) || (arrayOfRestrictions.include? ('='))) 
       isArtificialProblem = true;
     end
 
+    temp = 0
+
     if(isArtificialProblem)
       for i in 0...a.size do
-        if(arrayOfRestrictions[i] != '=')
-          for j in 0...numberOfRestrictions do
-            a[i] << 0
-          end
+        for j in 0..._numberOfRestrictions do
+          a[i] << 0
         end
         if(arrayOfRestrictions[i] == '>=')
-          a[i][numberOfVariables+i] = -1
+          a[i][a[i].size-_numberOfRestrictions+temp] = -1
+          temp = temp +1
         end
         if(arrayOfRestrictions[i] == '<=')
-          a[i][numberOfVariables+i] = 1
+          puts a[i].size.inspect,_numberOfRestrictions.inspect,temp.inspect
+          a[i][a[i].size-_numberOfRestrictions+temp] = 1
+          temp = temp +1          
         end
       end
     end
 
-    for i in 0...numberOfRestrictions do
+    puts a.inspect
+
+    for i in 0..._numberOfRestrictions do
       originalCosts << 0
     end
 
@@ -298,9 +327,9 @@ class Simplex
       #Colocando na base as variaveis que formam a identidade
       basicVariabels = (numberOfVariables...numberOfVariables+numberOfRestrictions).to_a
     else
-      nonBasicVariabels = (0...numberOfVariables+numberOfRestrictions).to_a
+      nonBasicVariabels = (0...a.size).to_a
       basicVariabels = (nonBasicVariabels.size...nonBasicVariabels.size+numberOfRestrictions).to_a
-      artificialVariables = (nonBasicVariabels.size...nonBasicVariabels.size+numberOfRestrictions).to_a
+      artificialVariables = (nonBasicVariabels.size...nonBasicVariabels.size+_numberOfRestrictions).to_a
 
       costs = originalCosts.collect{|x| x*0} 
       for i in 0...numberOfRestrictions do
